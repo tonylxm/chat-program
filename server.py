@@ -5,10 +5,11 @@ clients = {}    # Stores username-socket key-pairs locally
 lock = threading.Lock()
 
 HOST = 'localhost'
-PORT = int(input("Enter the port number to host the server on (e.g., 5555): "))
+PORT = 5555
 
 def authenticate(client_socket):
     client_socket.send(b'Welcome! Register or login: (R/L)')
+    client_socket.send(b'>>')
     response = client_socket.recv(1024).decode('utf-8')
     
     if response.upper() == 'R':
@@ -32,16 +33,15 @@ def authenticate(client_socket):
                 client_socket.send(b'Username not found. Please register first.')
                 return
             else:
-                client_socket.send(b'Login successful!')
+                client_socket.send(b"Login successful! Start chatting (type 'exit' to quit)")
                 return username
+    else:
+        client_socket.send(b'Please register or login: (R/L)')
 
 def handle_client(client_socket, client_address):
     try:
-        username = authenticate(client_socket)
-        client_socket.send(b'Choose a port number: ')
-        port = client_socket.recv(1024).decode('utf-8')
-        
-        client_socket.send(b"Enter message (type 'exit' to quit): ")
+        username = authenticate(client_socket)       
+        client_socket.send(b">> ")
         while True:
             message = client_socket.recv(1024).decode('utf-8')
             if message.lower() == 'exit':
