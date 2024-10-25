@@ -1,47 +1,51 @@
 import socket
 import threading
 import hashlib
+import ssl
 
-# Define server host and port
+# Define the server host and port
 HOST = 'localhost'
 PORT = 5555
 
 class Server:
     def __init__(self, host, port):
-        # Dictionary to store connected clients and passwords
+        # SSL context for secure server connection
+        self.context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        self.context.load_cert_chain(certfile="cert.pem", keyfile="cert.key")
+        self.context.set_ciphers('AES128-SHA')
+        
         self.clients = {}
         self.passwords = {}
-        self.lock = threading.Lock()  # Lock to manage shared data access
+        self.lock = threading.Lock()
         
-        # Create a TCP socket and bind it to the host and port
+        # Bind and wrap the socket with SSL
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind((host, port))
-        self.socket.listen(5)  # Server can queue up to 5 clients
-        print('Server waiting for connections...')
+        self.socket.listen(5)
+        self.socket = self.context.wrap_socket(self.socket, server_side=True)
+        print('Secure server waiting for connections...')
         
-        self.running = True  # Server running flag
-        self.accept_connections()  # Start accepting client connections
+        self.running = True
+        self.accept_connections()
 
     def accept_connections(self):
-        # Loop to accept and handle multiple client connections
+        # Accept new connections in a loop
         while self.running:
             client_socket, client_address = self.socket.accept()
             print(f'Connection established with {client_address}')
             
-            # Start a new thread to handle each connected client
             threading.Thread(target=self.client_handler, args=(client_socket, client_address)).start()
 
     def client_handler(self, client_socket, client_address):
-        # Authenticate the client upon connection
+        # Handle each client after authentication
         username = self.authenticate(client_socket)
         if username:
-            # Add authenticated client to the clients dictionary
             with self.lock:
                 self.clients[username] = client_socket
-            # Start receiving messages from the authenticated client
             self.receive_msg(client_socket, username)
         else:
-            client_socket.close()  # Close connection if authentication fails
+            client_socket.close()
 
     def authenticate(self, client_socket):
         # Authenticate user by allowing registration or login
