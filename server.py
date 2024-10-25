@@ -1,6 +1,5 @@
 import socket
 import threading
-import sys
 import hashlib
 
 HOST = 'localhost'
@@ -15,20 +14,27 @@ class Server:
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.bind((host, port))
         self.socket.listen(5)
-        print('Server waiting for connection...')
-        client_socket, client_address = self.socket.accept()
-        print(f'Connection established with {client_address}')
+        print('Server waiting for connections...')
+        
         self.running = True
-        
-        username = None
-        while username is None:
-            username = self.authenticate(client_socket)
-        if username is None:
-            print(f"Connection lost during authentication with {client_address}")
+        self.accept_connections()
+
+    def accept_connections(self):
+        while self.running:
+            client_socket, client_address = self.socket.accept()
+            print(f'Connection established with {client_address}')
+            
+            threading.Thread(target=self.client_handler, args=(client_socket, client_address)).start()
+
+    def client_handler(self, client_socket, client_address):
+        username = self.authenticate(client_socket)
+        if username:
+            with self.lock:
+                self.clients[username] = client_socket
+            self.receive_msg(client_socket, username)
+        else:
             client_socket.close()
-        
-        self.talk(client_socket)
-        
+
     def authenticate(self, client_socket):
         try:
             while True:
@@ -51,8 +57,7 @@ class Server:
                     hashed_password = self.hash_password(password)
 
                     with self.lock:
-                        if username not in self.clients:
-                            self.clients[username] = client_socket
+                        if username not in self.passwords:
                             self.passwords[username] = hashed_password
                             client_socket.send(b'Registration successful! You can now login.')
                             continue
@@ -74,7 +79,7 @@ class Server:
                     hashed_password = self.hash_password(password)
                     
                     with self.lock:
-                        if username not in self.clients:
+                        if username not in self.passwords:
                             client_socket.send(b'Username not found. Please register first.')
                             continue
                         elif self.passwords[username] != hashed_password:
@@ -85,7 +90,6 @@ class Server:
                             return username
                 else:
                     client_socket.send(b'Invalid option. Please register or login (R/L)')
-
         except Exception as e:
             print(f"Error during authentication: {e}")
             return None
@@ -93,50 +97,30 @@ class Server:
     def hash_password(self, password):
         return hashlib.sha256(password.encode()).hexdigest()
 
-    def talk(self, client_socket):
-        client_thread = threading.Thread(target=self.receive_msg, args=(client_socket,))
-        client_thread.start()
-        self.send_msg(client_socket)
-        
-        client_thread.join()
-
-    def send_msg(self, client_socket):
-        while self.running:
-            message = input("Server: ")
-            
-            if not message:
-                print("Empty input, please try again.")
-                continue
-
-            if message.lower() == 'exit':
-                client_socket.send(b'exit')
-                self.running = False
-                client_socket.close()
-                self.socket.close()
-                sys.exit(0)
-            
-            client_socket.send(f"Server: {message}".encode('utf-8'))
-
-    def receive_msg(self, client_socket):
+    def receive_msg(self, client_socket, username):
         try:
             while self.running:
-                client_message = client_socket.recv(1024).decode('utf-8')
+                message = client_socket.recv(1024).decode('utf-8')
                 
-                if client_message.lower() == 'exit':
-                    print("\nConnection closed by the client.")
-                    self.running = False
-                    client_socket.close()
-                    self.socket.close()
+                if message.lower() == 'exit':
+                    print(f"{username} has disconnected.")
+                    with self.lock:
+                        del self.clients[username]
                     break
                 
-                sys.stdout.write('\r' + ' ' * 50 + '\r')
-                sys.stdout.write(f"{client_message}\n")
-                sys.stdout.write("Server: ")
-                sys.stdout.flush()
+                # Broadcast the message to all other clients
+                self.broadcast(f"{username}: {message}", client_socket)
+                print(f"{username}: {message}")
         except ConnectionAbortedError:
             print("Connection aborted unexpectedly.")
         finally:
             client_socket.close()
+
+    def broadcast(self, message, sender_socket):
+        with self.lock:
+            for client_socket in self.clients.values():
+                if client_socket != sender_socket:
+                    client_socket.send(message.encode('utf-8'))
 
 if __name__ == "__main__":
     Server(HOST, PORT)

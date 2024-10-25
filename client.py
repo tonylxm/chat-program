@@ -54,7 +54,7 @@ class Client:
                 self.client_socket.close()
                 sys.exit(0)
 
-            self.client_socket.send(f"{self.username}: {message}".encode('utf-8'))
+            self.client_socket.send(message.encode('utf-8'))
 
     def receive_msg(self):
         while self.running:
