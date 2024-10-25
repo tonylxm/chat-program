@@ -8,7 +8,6 @@ This project implements a 1-1 chatting program using Python. It consists of a cl
 - OpenSSL
 
 ## Installation Instructions
-
 ### 1. Clone the Repository
 To get the project files, clone the repository using the following command:
 
@@ -24,7 +23,8 @@ cd chat-program
 pip install pyopenssl
 ```
 
-#### Set up OpenSSL
+**Set up OpenSSL**
+
 You need to generate a self-signed SSL/TLS certificate and a private key to enable secure communication between the server and client. Follow these steps:
 
 Make sure you have OpenSSL installed on your machine. You can verify the installation by running:
@@ -73,14 +73,14 @@ Ensure that the following files are created in the project directory:
 - cert.csr (certificate signing request)
 - cert.pem (self-signed certificate)
 
-### How to run the chat program
-**1. Start the server first**
+## How to run the chat program
+### 1. Start the server first
 ```bash
 python3 server.py
 ```
 You should see a message indicating that the secure server is waiting for connections.
 
-**2. Run the clients**
+### 2. Run the clients
 
 Open a new terminal window (or tab) for each client and run the client script:
 
@@ -89,7 +89,7 @@ python3 client.py
 ```
 Repeat this step for as many clients as you wish to test (e.g., two clients for a 1-1 chat).
 
-**3. Client Instructions**
+### 3. Client Instructions
 
 Once the client is running, follow the instructions displayed in the terminal:
 
@@ -97,4 +97,4 @@ Once the client is running, follow the instructions displayed in the terminal:
 - Login: Type L to log in with an existing username and password.
 - Chat: After successful authentication, you can start chatting with the connected client.
 
-**4. Stop chatting by typing 'exit'**
+### 4. Stop chatting by typing 'exit'
