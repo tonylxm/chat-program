@@ -19,7 +19,7 @@ git clone https://github.com/tonylxm/chat-program
 ```
 
 ### How to run
-1. Run the server
+1. Run the server first
 
    ```bash
    python3 server.py
@@ -31,5 +31,6 @@ git clone https://github.com/tonylxm/chat-program
     python3 client.py
     ```
 
-3. Register and login
+3. Register and login by typing 'R' or 'L' respectively
 4. Start chatting
+5. Stop chatting by typing 'exit'
