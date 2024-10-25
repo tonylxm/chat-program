@@ -1,17 +1,19 @@
 import socket
 import threading
 import sys
+import hashlib
 
 HOST = 'localhost'
 PORT = 5555
 
-class Server:    
-    def __init__(self, HOST, PORT):
+class Server:
+    def __init__(self, host, port):
         self.clients = {}
+        self.passwords = {}
         self.lock = threading.Lock()
         
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.bind((HOST, PORT))
+        self.socket.bind((host, port))
         self.socket.listen(5)
         print('Server waiting for connection...')
         client_socket, client_address = self.socket.accept()
@@ -30,7 +32,7 @@ class Server:
     def authenticate(self, client_socket):
         try:
             while True:
-                client_socket.send(b'Welcome! Register or login: (R/L)')
+                client_socket.send(b'Welcome! Register or login (R/L)')
                 response = client_socket.recv(1024).decode('utf-8')
                 if not response:
                     return None
@@ -40,9 +42,18 @@ class Server:
                     username = client_socket.recv(1024).decode('utf-8')
                     if not username:
                         return None
+                    
+                    client_socket.send(b'Enter new password')
+                    password = client_socket.recv(1024).decode('utf-8')
+                    if not password:
+                        return None
+                    
+                    hashed_password = self.hash_password(password)
+
                     with self.lock:
                         if username not in self.clients:
                             self.clients[username] = client_socket
+                            self.passwords[username] = hashed_password
                             client_socket.send(b'Registration successful! You can now login.')
                             continue
                         else:
@@ -54,9 +65,20 @@ class Server:
                     username = client_socket.recv(1024).decode('utf-8')
                     if not username:
                         return None
+                    
+                    client_socket.send(b'Enter your password')
+                    password = client_socket.recv(1024).decode('utf-8')
+                    if not password:
+                        return None
+                    
+                    hashed_password = self.hash_password(password)
+                    
                     with self.lock:
                         if username not in self.clients:
                             client_socket.send(b'Username not found. Please register first.')
+                            continue
+                        elif self.passwords[username] != hashed_password:
+                            client_socket.send(b'Incorrect password. Please try again.')
                             continue
                         else:
                             client_socket.send(b'Login successful! Start chatting (type "exit" to quit).')
@@ -67,7 +89,10 @@ class Server:
         except Exception as e:
             print(f"Error during authentication: {e}")
             return None
-    
+            
+    def hash_password(self, password):
+        return hashlib.sha256(password.encode()).hexdigest()
+
     def talk(self, client_socket):
         client_thread = threading.Thread(target=self.receive_msg, args=(client_socket,))
         client_thread.start()

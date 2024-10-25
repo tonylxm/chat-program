@@ -6,9 +6,9 @@ HOST = 'localhost'
 PORT = 5555
 
 class Client:
-    def __init__(self, HOST, PORT):
+    def __init__(self, host, port):
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.client_socket.connect((HOST, PORT))
+        self.client_socket.connect((host, port))
         self.username = None
         self.running = True
         self.is_authenticated = False
@@ -28,6 +28,9 @@ class Client:
             elif 'Enter new username' in response or 'Enter your username' in response:
                 username = input(">> ")
                 self.client_socket.send(username.encode('utf-8'))
+            elif 'Enter new password' in response or 'Enter your password' in response:
+                password = input(">> ")
+                self.client_socket.send(password.encode('utf-8'))
             elif 'Login successful' in response:
                 self.is_authenticated = True
                 self.username = username

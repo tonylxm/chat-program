@@ -31,6 +31,7 @@ git clone https://github.com/tonylxm/chat-program
     python3 client.py
     ```
 
-3. Register and login by typing 'R' or 'L' respectively
-4. Start chatting
-5. Stop chatting by typing 'exit'
+3. Register by typing 'R' and choose a username and password
+4. Login by typing 'L' and enter your username and password
+5. Start chatting
+6. Stop chatting by typing 'exit'
