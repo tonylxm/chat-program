@@ -9,9 +9,29 @@ class Client:
     def __init__(self, HOST, PORT):
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.client_socket.connect((HOST, PORT))
-        self.username = "Client"
+        self.username = None
         self.running = True
+        self.is_authenticated = False
+        
+        while not self.is_authenticated:
+            self.authenticate()
         self.talk()
+
+    def authenticate(self):
+        while True:
+            response = self.client_socket.recv(1024).decode('utf-8')
+            print(response)
+
+            if 'Register or login' in response:
+                option = input("Enter R to register or L to login: ")
+                self.client_socket.send(option.encode('utf-8'))
+            elif 'Enter new username' in response or 'Enter your username' in response:
+                username = input(">> ")
+                self.client_socket.send(username.encode('utf-8'))
+            elif 'Login successful' in response:
+                self.is_authenticated = True
+                self.username = username
+                break
 
     def talk(self):
         client_thread = threading.Thread(target=self.receive_msg)
@@ -43,14 +63,8 @@ class Client:
                     self.client_socket.close()
                     break
 
-                sys.stdout.write('\r' + ' ' * 50 + '\r')
-                sys.stdout.write(f"{server_message}\n")
-                sys.stdout.write("Client: ")
+                print(f"\r{server_message}\n{self.username}: ", end="")
                 sys.stdout.flush()
-            except ConnectionResetError:
-                print("\nConnection lost. The server may have closed the connection.")
-                self.running = False
-                break
             except Exception as e:
                 print(f"\nAn error occurred: {e}")
                 self.running = False
